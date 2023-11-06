@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Grid</title>
+    <style>
+        .parent_container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 600px; /* Assuming you want to take up the full viewport height */
+            width: 600px; /* Assuming you want to take up the full viewport width */
+            padding: 10px; /* Optional: if you want some space around the grid */
+            border: 1px solid black;
+            overflow-x: auto;
+            overflow-y: auto;
+        }
+
+        .container {
+            display: grid;
+            gap: 2px;
+            justify-items: center;
+            align-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .item, .label {
+            width: 40px;
+            height: 40px;
+            border: 1px solid gray;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+
+        .item {
+            opacity: 1;
+        }
+
+        .invisible {
+            visibility: hidden;
+        }
+
+        .label {
+            background-color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="parent_container">
+        <div class="container" id="grid-container"></div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src='https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js'></script>
+    <script>
+        function createGrid(shortVerticalLabels, shortHorizontalLabels, longVerticalLabels, longHorizontalLabels, data) {
+            var container = $('#grid-container');
+            var rows = shortVerticalLabels.length + 1;
+            var cols = shortHorizontalLabels.length + 1;
+
+            container.css({
+                'grid-template-columns': `40px repeat(${cols - 1}, 1fr)`,
+                'grid-template-rows': `repeat(${rows}, 1fr)`,
+                'width': 40 * cols + 'px',
+                'height': 40 * rows + 'px',
+            });
+
+            for (var i = 0; i < rows * cols; i++) {
+                var row = Math.floor(i / cols);
+                var col = i % cols;
+
+                if (row === rows - 1 || col === 0) {
+                    if (row === rows - 1 && col === 0) {
+                        container.append('<div class="label"></div>');
+                    } else {
+                        var labelValue = (row === rows - 1) ? shortHorizontalLabels[col - 1] : shortVerticalLabels[row];
+                        container.append('<div class="label">' + labelValue + '</div>');
+                    }
+                } else {
+                    var item = $('<div class="item" data-row="' + row + '" data-col="' + col + '"></div>');
+                    if (col - 1 > row) {
+                        item.addClass('invisible');
+                    } else {
+                        var value = data[row][col - 1];
+                        item.text(value.toFixed(2));
+                        item.css('background-color', generatePastelColor(value));
+                    }
+                    container.append(item);
+                }
+            }
+
+            $('.item').hover(
+                function () {
+                    var hoveredRow = $(this).data('row');
+                    var hoveredCol = $(this).data('col');
+                    var value = $(this).text();
+                    var tooltipContent = `${longVerticalLabels[hoveredRow]} (${shortVerticalLabels[hoveredRow]}), ${longHorizontalLabels[hoveredCol - 1]} (${shortHorizontalLabels[hoveredCol - 1]}), Value: ${parseFloat(value) * 100}%`;
+                    $(this).attr('title', tooltipContent);
+                    $('.item').not('.invisible').css('opacity', '0.6');
+                    $(`.item[data-row=${hoveredRow}]`).css('opacity', '1');
+                    $(`.item[data-col=${hoveredCol}]`).css('opacity', '1');
+                },
+                function () {
+                    $('.item').css('opacity', '1');
+                }
+            );
+        }
+
+        function generatePastelColor(factor) {
+            var r = Math.round(255 * factor);
+            var g = Math.round(255 * (1 - factor));
+            r = Math.round((r + 255) / 2);
+            g = Math.round((g + 255) / 2);
+            return `rgb(${r}, ${g}, 200)`;
+        }
+
+        $(document).ready(function () {
+            panzoom(document.querySelector(".container"))
+
+            var gridSize = 15; // Since we want to triple a 5x5 grid, we use 15.
+            var shortVerticalLabels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"].slice(0, gridSize);
+            var shortHorizontalLabels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"].slice(0, gridSize);
+            var longVerticalLabels = [
+                "Label A", "Label B", "Label C", "Label D", "Label E",
+                "Label F", "Label G", "Label H", "Label I", "Label J",
+                "Label K", "Label L", "Label M", "Label N", "Label O"
+            ].slice(0, gridSize);
+            var longHorizontalLabels = [
+                "Label 1", "Label 2", "Label 3", "Label 4", "Label 5",
+                "Label 6", "Label 7", "Label 8", "Label 9", "Label 10",
+                "Label 11", "Label 12", "Label 13", "Label 14", "Label 15".slice(0, gridSize)
+            ];
+            // Define the size of the grid.
+            var data = [];
+
+            // Use nested loops to fill the 2D array.
+            for (var i = 0; i < gridSize; i++) {
+                // Create a new row.
+                var row = [];
+                for (var j = 0; j < gridSize; j++) {
+                    // Push a random value between 0 and 1 into the row.
+                    row.push(Math.random()); // .toFixed(2) limits it to 2 decimal places.
+                }
+                // Push the row into the data array.
+                data.push(row);
+            }
+            createGrid(shortVerticalLabels, shortHorizontalLabels, longVerticalLabels, longHorizontalLabels, data);
+        });
+    </script>
+</body>
+</html>
